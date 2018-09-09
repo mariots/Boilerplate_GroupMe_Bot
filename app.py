@@ -4,9 +4,9 @@
 # IMPORTS
 import os
 import json
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+import urllib3
 from flask import Flask, request
+from pprint import pprint
 
 app = Flask(__name__)
 bot_id = "REPLACE THIS WITH YOUR BOT ID ONCE BOT IS ADDED TO THE CHAT"
@@ -18,9 +18,47 @@ def webhook():
 	# 'message' is an object that represents a single GroupMe message.
 	message = request.get_json()
 
-	# TODO: Your bot's logic here
+	verses = ''
+	for verse in getVerse(message):
+		verses = verses + verse.strip()
+
+	reply(verses)
 
 	return "ok", 200
+
+
+def getVerse(message):
+	headers = {'content-type':'application/json', 
+				'Authorization':'Token 2981cf218fa90ffb3a422350cc586275b4617213'}
+
+	API_URL = 'https://api.esv.org/v3/passage/text/'
+	
+	params = {
+        'q': message,
+        'include-headings': False,
+        'include-footnotes': False,
+		'indent-poetry': False,
+		'indent-poetry-lines': 1,
+        'include-verse-numbers': False,
+		'indent-paragraphs': 1,
+        'include-short-copyright': False,
+		'include-footnote-body': False,
+        'include-passage-references': False,
+		'include-passage-horizontal-lines': False,
+		'include-heading-horizontal-lines': False,
+		'horizontal-line-length': 1000
+    }
+
+	urllib3.disable_warnings()
+	http = urllib3.PoolManager()
+	r = http.request('GET',
+					API_URL,
+					fields=params,
+					headers=headers)
+
+	res = json.loads(r.data.decode('utf-8'))
+
+	return res['passages']
 
 ################################################################################
 
@@ -33,6 +71,7 @@ def reply(msg):
 	}
 	request = Request(url, urlencode(data).encode())
 	json = urlopen(request).read().decode()
+	
 
 # Send a message with an image attached in the groupchat
 def reply_with_image(msg, imgURL):
@@ -41,7 +80,7 @@ def reply_with_image(msg, imgURL):
 	data = {
 		'bot_id'		: bot_id,
 		'text'			: msg,
-		'picture_url'		: urlOnGroupMeService
+		'picture_url'	: urlOnGroupMeService
 	}
 	request = Request(url, urlencode(data).encode())
 	json = urlopen(request).read().decode()
