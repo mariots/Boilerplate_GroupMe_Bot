@@ -69,8 +69,14 @@ def reply(msg):
 		'bot_id'		: bot_id,
 		'text'			: msg
 	}
-	request = Request(url, urlencode(data).encode())
-	json = urlopen(request).read().decode()
+
+	urllib3.disable_warnings()
+	http = urllib3.PoolManager()
+	r = http.request('POST',
+					url,
+					fields=data)
+
+	return json.loads(r.data.decode('utf-8'))
 	
 
 # Send a message with an image attached in the groupchat
